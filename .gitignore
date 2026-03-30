@@ -1,0 +1,14 @@
+node_modules/
+dist/
+
+downloads/
+
+.env
+.env.local
+.env.*.local
+
+cookies.txt
+cookies.txt.bak-*
+
+*.log
+.DS_Store
