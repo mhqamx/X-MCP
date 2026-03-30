@@ -158,11 +158,33 @@ node dist/index.js
 - 这是 `stdio` MCP Server，不会监听 HTTP 端口
 - 正常用法是由 MCP Host 拉起该进程
 
-## MCP 挂载配置
+## 在 Claude Desktop 本地安装
 
-### Codex / 支持 `mcpServers` 的客户端
+### 1. 先构建 MCP
 
-示例：
+```bash
+npm install
+npm run build
+```
+
+确认构建产物存在：
+
+```bash
+ls dist/index.js
+```
+
+### 2. 找到 Claude Desktop 配置文件
+
+常见路径：
+
+- macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
+- Windows: `%APPDATA%\\Claude\\claude_desktop_config.json`
+
+如果文件不存在，可以手动创建。
+
+### 3. 添加本地 MCP 配置
+
+把下面这段加入 `claude_desktop_config.json`：
 
 ```json
 {
@@ -183,27 +205,87 @@ node dist/index.js
 }
 ```
 
-如果你不想把 Cookie 放进配置文件，也可以把 `cookies.txt` 放在项目根目录，然后只保留代理相关环境变量。
+说明：
 
-### Claude Desktop 示例
+- `command` 建议直接用 `node`
+- `args` 指向本项目的 `dist/index.js`
+- 如果你不想把 Cookie 放进配置文件，可以删除 `X_COOKIE`，改为在项目根目录放 `cookies.txt`
+- 如果本机访问 `x.com` 需要代理，把 `HTTP_PROXY` / `HTTPS_PROXY` / `NODE_USE_ENV_PROXY` 一起带上
 
-可参考如下配置：
+### 4. 重启 Claude Desktop
 
-```json
-{
-  "mcpServers": {
-    "x-mcp": {
-      "command": "node",
-      "args": [
-        "/absolute/path/to/x-mcp/dist/index.js"
-      ],
-      "env": {
-        "X_COOKIE": "auth_token=xxx; ct0=xxx; ..."
-      }
-    }
-  }
-}
+重启后，Claude Desktop 会自动拉起这个本地 MCP Server。
+
+如果接入正常，终端手动运行时会看到：
+
+```text
+X Scraper MCP Server 已启动 (stdio 模式)
 ```
+
+## 在 Codex 本地安装
+
+Codex 这边用的是 `~/.codex/config.toml`。
+
+### 1. 先构建 MCP
+
+```bash
+npm install
+npm run build
+```
+
+### 2. 编辑 Codex 配置
+
+打开：
+
+```bash
+~/.codex/config.toml
+```
+
+加入下面这段：
+
+```toml
+[mcp_servers.x-mcp]
+command = "node"
+args = ["/absolute/path/to/x-mcp/dist/index.js"]
+
+[mcp_servers.x-mcp.env]
+X_COOKIE = "auth_token=xxx; ct0=xxx; ..."
+HTTP_PROXY = "http://127.0.0.1:7897"
+HTTPS_PROXY = "http://127.0.0.1:7897"
+NODE_USE_ENV_PROXY = "1"
+```
+
+如果你的 Node 版本支持 `--use-env-proxy`，也可以把 `args` 改成：
+
+```toml
+args = ["--use-env-proxy", "/absolute/path/to/x-mcp/dist/index.js"]
+```
+
+如果你不想在配置文件里写 Cookie，也可以删掉 `X_COOKIE`，改为在项目根目录提供 `cookies.txt`。
+
+### 3. 可选：用 Codex 命令直接添加
+
+如果本机 `codex` 命令可用，也可以直接执行：
+
+```bash
+codex mcp add x-mcp -- node /absolute/path/to/x-mcp/dist/index.js
+```
+
+执行完后，再去 `~/.codex/config.toml` 里补环境变量。
+
+### 4. 重启 Codex
+
+重启后新的会话里就能看到 `x-mcp` 工具。
+
+## MCP 挂载排查
+
+如果 Claude 或 Codex 挂载后不可用，优先检查：
+
+- 是否先执行了 `npm run build`
+- `dist/index.js` 路径是否写对
+- `X_COOKIE` 或 `cookies.txt` 是否有效
+- 本机是否需要代理访问 `x.com`
+- 是否重启了 Claude Desktop 或 Codex
 
 ## 常用命令
 
